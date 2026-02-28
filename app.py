@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Huerto de Palabras", layout="wide")
+st.set_page_config(page_title="Huerto de Palabras Mágico", layout="wide")
 
 st.markdown("""
     <style>
@@ -10,106 +10,174 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-html_huerto_aleatorio = r"""
+html_huerto_premium_random = r"""
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Quicksand:wght@500;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
     <style>
         :root {
             --farm-green: #2d6a4f;
             --farm-light: #d8f3dc;
             --carrot-orange: #fb8500;
-            --accent: #7209b7;
+            --tomato-red: #e63946;
+            --accent-purple: #7209b7;
         }
+
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
         body {
             font-family: 'Quicksand', sans-serif;
+            min-height: 100vh;
             background: #fdfae5;
+            background-image: radial-gradient(#2d6a4f11 2px, transparent 2px);
+            background-size: 30px 30px;
             display: flex; flex-direction: column; align-items: center;
-            padding-top: 60px; min-height: 100vh;
+            padding-top: 60px;
         }
-        header { text-align: center; margin-bottom: 20px; }
-        h1 { font-family: 'Fredoka', sans-serif; color: var(--farm-green); font-size: 2.5rem; }
-        
+
+        header { text-align: center; padding-bottom: 20px; width: 100%; }
+        h1 { font-family: 'Fredoka', sans-serif; font-size: 3rem; color: var(--farm-green); text-shadow: 3px 3px 0px white; }
+        .brand-name { font-family: 'Dancing Script', cursive; font-size: 1.8rem; color: var(--accent-purple); }
+
         .main-layout {
-            display: grid; grid-template-columns: 260px 1fr;
-            gap: 20px; width: 95%; max-width: 1100px;
+            display: grid; grid-template-columns: 280px 1fr;
+            gap: 30px; width: 95%; max-width: 1200px; margin-top: 20px;
+        }
+
+        /* LISTA LATERAL */
+        .sidebar {
+            background: white; padding: 25px; border-radius: 25px;
+            border: 4px solid var(--farm-light); box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+        .sidebar h3 { font-family: 'Fredoka', sans-serif; color: var(--farm-green); margin-bottom: 15px; text-align: center; }
+        
+        .word-item {
+            padding: 12px; margin-bottom: 10px; background: #f8fcf8;
+            border-radius: 15px; font-weight: 700; color: #444;
+            display: flex; justify-content: space-between; align-items: center;
+            border: 2px solid transparent; transition: 0.3s;
+        }
+        .word-item.done { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; opacity: 0.7; }
+
+        /* JUEGO */
+        .game-zone { display: flex; flex-direction: column; gap: 25px; }
+        
+        .progress-container {
+            width: 100%; background: white; height: 20px;
+            border-radius: 20px; border: 3px solid var(--farm-light); overflow: hidden;
+        }
+        #progress-fill {
+            height: 100%; width: 0%; background: linear-gradient(90deg, var(--carrot-orange), var(--tomato-red));
+            transition: width 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .drop-zone {
+            background: white; border: 4px dashed var(--farm-green);
+            border-radius: 30px; min-height: 150px; display: flex;
+            justify-content: center; align-items: center; gap: 15px;
+            padding: 30px; position: relative; box-shadow: inset 0 5px 15px rgba(0,0,0,0.05);
+        }
+        .drop-zone::before { content: "¡Arrastra las sílabas aquí!"; color: #bbb; font-style: italic; font-size: 1.2rem; }
+        .drop-zone.has-content::before { display: none; }
+
+        .pool {
+            background: rgba(255,255,255,0.4); border: 3px solid var(--farm-light);
+            border-radius: 30px; padding: 30px; display: flex; flex-wrap: wrap;
+            justify-content: center; gap: 15px; min-height: 250px; backdrop-filter: blur(5px);
+        }
+
+        .piece {
+            background: white; border: 3px solid var(--farm-green);
+            border-radius: 18px; padding: 15px 25px;
+            font-family: 'Fredoka', sans-serif; font-size: 1.5rem;
+            color: var(--farm-green); cursor: grab;
+            box-shadow: 0 6px 0px var(--farm-green);
+            transition: 0.2s; text-transform: lowercase;
+        }
+        .piece:active { transform: translateY(3px); box-shadow: 0 2px 0px var(--farm-green); }
+        .piece.dragging { opacity: 0.3; }
+        .piece.is-correct { background: #4caf50; color: white; border-color: #2e7d32; box-shadow: 0 4px 0px #2e7d32; }
+
+        /* ALERTAS */
+        #alert-box {
+            position: fixed; top: 15%; left: 50%; transform: translateX(-50%) scale(0);
+            padding: 15px 45px; border-radius: 50px; color: white; font-weight: bold;
+            font-size: 1.8rem; z-index: 500; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #alert-box.show { transform: translateX(-50%) scale(1); }
+        .bg-win { background: #4caf50; box-shadow: 0 10px 20px rgba(76,175,80,0.3); }
+
+        /* PROFESOR */
+        #professor-pop {
+            position: fixed; bottom: -400px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; transition: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: center;
+        }
+        #professor-pop.active { bottom: 30px; }
+        .prof-bubble {
+            background: white; padding: 20px 40px; border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); font-size: 1.8rem;
+            font-weight: bold; color: var(--accent-purple); margin-bottom: 15px;
+        }
+
+        /* FINAL */
+        #final-screen {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.98);
+            display: none; flex-direction: column; align-items: center;
+            justify-content: center; z-index: 2000; text-align: center;
+        }
+        #final-screen.active { display: flex; }
+
+        .btn-restart {
+            background: var(--carrot-orange); color: white; border: none;
+            padding: 20px 50px; font-size: 1.8rem; border-radius: 60px;
+            cursor: pointer; margin-top: 30px; box-shadow: 0 8px 0px #d35400;
+            font-family: 'Fredoka', sans-serif;
         }
         
-        .sidebar {
-            background: white; padding: 20px; border-radius: 20px;
-            border: 3px solid var(--farm-light); height: fit-content;
-        }
-        .word-item {
-            padding: 8px; margin: 5px 0; border-radius: 10px;
-            background: #f9fbf9; font-weight: bold; color: #444;
-            display: flex; justify-content: space-between;
-        }
-        .word-item.done { background: #e8f5e9; color: #2e7d32; text-decoration: line-through; }
-
-        .game-zone { display: flex; flex-direction: column; gap: 20px; }
-        .drop-box {
-            background: white; border: 4px dashed var(--farm-green);
-            border-radius: 20px; min-height: 120px; display: flex;
-            justify-content: center; align-items: center; gap: 10px; padding: 20px;
-        }
-        .pool {
-            background: rgba(255,255,255,0.5); border-radius: 20px;
-            padding: 20px; display: flex; flex-wrap: wrap; gap: 10px;
-            justify-content: center; min-height: 200px;
-        }
-        .piece {
-            background: white; border: 2px solid #ddd; border-bottom: 5px solid #ccc;
-            border-radius: 12px; padding: 10px 20px; font-size: 1.2rem;
-            cursor: grab; font-family: 'Fredoka', sans-serif;
-        }
-        .piece.dragging { opacity: 0.3; }
-        .piece.correct { background: #4caf50; color: white; border-color: #2e7d32; }
-
-        #win-modal {
-            position: fixed; inset: 0; background: white;
-            display: none; flex-direction: column; align-items: center;
-            justify-content: center; z-index: 100; text-align: center;
-        }
-        #win-modal.active { display: flex; }
-        .btn {
-            background: var(--carrot-orange); color: white; border: none;
-            padding: 15px 30px; border-radius: 50px; font-size: 1.5rem;
-            cursor: pointer; margin-top: 20px; font-family: 'Fredoka', sans-serif;
-        }
+        .balloon { position: fixed; bottom: -100px; animation: floatUp 6s linear forwards; font-size: 3rem; }
+        @keyframes floatUp { to { transform: translateY(-120vh) rotate(20deg); } }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>Juego del Huerto</h1>
-        <p style="color: var(--accent); font-weight: bold;">PaoSpanishTeacher</p>
+        <h1>Huerto de Palabras</h1>
+        <div class="brand-name">Pau Spanish Teacher</div>
     </header>
 
     <div class="main-layout">
         <div class="sidebar">
-            <h3 style="margin-bottom:10px; color: var(--farm-green)">Lista de hoy:</h3>
+            <h3 id="round-title">Ronda: 10 Palabras</h3>
             <div id="list-container"></div>
         </div>
         <div class="game-zone">
-            <div class="drop-box" id="drop-zone"></div>
-            <div style="text-align:center"><button onclick="clearDrop()" style="cursor:pointer; padding:5px 15px; border-radius:10px; border:1px solid #ccc;">Reiniciar palabra</button></div>
+            <div class="progress-container"><div id="progress-fill"></div></div>
+            <div class="drop-zone" id="drop-zone"></div>
+            <div style="text-align:center"><button onclick="clearWord()" style="background:#eee; border:none; padding:8px 20px; border-radius:15px; cursor:pointer; font-weight:bold;">Limpiar Palabra</button></div>
             <div class="pool" id="pool"></div>
         </div>
     </div>
 
-    <div id="win-modal">
-        <h1 style="font-size: 4rem;">🥕🥦🍅</h1>
-        <h1>¡Fantástico!</h1>
-        <p>Has completado las verduras de esta ronda.</p>
-        <button class="btn" onclick="location.reload()">Jugar con palabras nuevas</button>
+    <div id="alert-box"></div>
+
+    <div id="professor-pop">
+        <div class="prof-bubble">¡Excelente trabajo! ¡Eres un genio!</div>
+        <span style="font-size: 8rem;">👨‍🏫</span>
+    </div>
+
+    <div id="final-screen">
+        <span style="font-size: 8rem;">🥕</span>
+        <h1>¡Felicidades, terminaste!</h1>
+        <p style="font-size: 1.5rem; color: var(--accent-purple); font-weight: bold;">Juego creado por Pau Spanish Teacher</p>
+        <button class="btn-restart" onclick="location.reload()">Jugar con palabras nuevas</button>
     </div>
 
     <script>
-        // BANCO GRANDE DE PALABRAS (25 verduras)
         const MASTER_BANK = [
             { w: "zanahoria", p: ["za", "na", "ho", "ria"] },
             { w: "tomate", p: ["to", "ma", "te"] },
@@ -124,54 +192,55 @@ html_huerto_aleatorio = r"""
             { w: "papa", p: ["pa", "pa"] },
             { w: "elote", p: ["e", "lo", "te"] },
             { w: "berenjena", p: ["be", "ren", "je", "na"] },
-            { w: "rápano", p: ["rá", "ba", "no"] },
+            { w: "rábano", p: ["rá", "ba", "no"] },
             { w: "apio", p: ["a", "pio"] },
             { w: "coliflor", p: ["co", "li", "flor"] },
             { w: "betabel", p: ["be", "ta", "bel"] },
             { w: "hongo", p: ["hon", "go"] },
             { w: "espárrago", p: ["es", "pá", "rra", "go"] },
-            { w: "ejote", p: ["e", "jo", "te"] },
-            { w: "alcachofa", p: ["al", "ca", "cho", "fa"] },
-            { w: "calabacín", p: ["ca", "la", "ba", "cín"] },
-            { w: "perejil", p: ["pe", "re", "jil"] },
-            { w: "puerro", p: ["pue", "rro"] },
-            { w: "camote", p: ["ca", "mo", "te"] }
+            { w: "ejote", p: ["e", "jo", "te"] }
         ];
 
-        let currentRoundWords = [];
-        let completedCount = 0;
+        let selectedWords = [];
+        let score = 0;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function initRound() {
-            // 1. Elegir 10 palabras al azar del banco de 25
-            currentRoundWords = [...MASTER_BANK]
-                .sort(() => Math.random() - 0.5)
-                .slice(0, 10);
+        function playSound(f, d) {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.frequency.value = f;
+            g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + d);
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + d);
+        }
 
-            const listCont = document.getElementById('list-container');
-            const poolCont = document.getElementById('pool');
+        function init() {
+            // Seleccionar 10 al azar
+            selectedWords = [...MASTER_BANK].sort(() => Math.random() - 0.5).slice(0, 10);
             
-            // 2. Renderizar lista lateral
-            currentRoundWords.forEach(item => {
-                listCont.innerHTML += `<div class="word-item" id="li-${item.w}">${item.w} <span>❓</span></div>`;
+            const list = document.getElementById('list-container');
+            const pool = document.getElementById('pool');
+            
+            selectedWords.forEach(item => {
+                list.innerHTML += `<div class="word-item" id="li-${item.w}">${item.w} <span>❓</span></div>`;
             });
 
-            // 3. Mezclar todas las sílabas de las 10 elegidas
-            let syllables = [];
-            currentRoundWords.forEach(item => {
-                item.p.forEach(s => syllables.push({t: s, owner: item.w}));
+            let allSyllables = [];
+            selectedWords.forEach(item => {
+                item.p.forEach(s => allSyllables.push({t: s, w: item.w}));
             });
-            syllables.sort(() => Math.random() - 0.5);
+            allSyllables.sort(() => Math.random() - 0.5);
 
-            syllables.forEach((s, i) => {
+            allSyllables.forEach((s, i) => {
                 const div = document.createElement('div');
                 div.className = 'piece';
                 div.textContent = s.t;
-                div.dataset.owner = s.owner;
+                div.dataset.owner = s.w;
                 div.draggable = true;
                 div.id = 's-' + i;
                 div.ondragstart = (e) => { e.dataTransfer.setData('text', div.id); div.classList.add('dragging'); };
                 div.ondragend = () => div.classList.remove('dragging');
-                poolCont.appendChild(div);
+                pool.appendChild(div);
             });
         }
 
@@ -182,38 +251,63 @@ html_huerto_aleatorio = r"""
             const el = document.getElementById(id);
             if(el) {
                 dz.appendChild(el);
-                checkWord();
+                dz.classList.add('has-content');
+                check();
             }
         };
 
-        function checkWord() {
+        function check() {
             const items = Array.from(dz.children);
-            const str = items.map(i => i.textContent).join('');
-            const target = currentRoundWords.find(w => w.w === str);
+            const current = items.map(i => i.textContent).join('');
+            const target = selectedWords.find(w => w.w === current);
 
             if (target) {
-                items.forEach(i => i.classList.add('correct'));
-                confetti({ particleCount: 30, spread: 50, origin: { y: 0.8 } });
+                items.forEach(i => i.classList.add('is-correct'));
+                playSound(523, 0.5);
+                confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
                 
+                const ab = document.getElementById('alert-box');
+                ab.textContent = "¡Muy bien!"; ab.className = "bg-win show";
+                setTimeout(() => ab.classList.remove('show'), 1000);
+
                 setTimeout(() => {
                     dz.innerHTML = '';
+                    dz.classList.remove('has-content');
                     document.getElementById(`li-${target.w}`).classList.add('done');
                     document.getElementById(`li-${target.w}`).querySelector('span').textContent = '✅';
-                    completedCount++;
-                    if(completedCount === 10) document.getElementById('win-modal').classList.add('active');
-                }, 700);
+                    score++;
+                    document.getElementById('progress-fill').style.width = (score * 10) + '%';
+                    
+                    if (score === 5) { // Aparece el profesor a mitad de camino
+                        document.getElementById('professor-pop').classList.add('active');
+                        setTimeout(() => document.getElementById('professor-pop').classList.remove('active'), 3000);
+                    }
+                    
+                    if (score === 10) win();
+                }, 800);
             }
         }
 
-        function clearDrop() {
-            const items = Array.from(dz.children);
-            items.forEach(i => document.getElementById('pool').appendChild(i));
+        function clearWord() {
+            Array.from(dz.children).forEach(i => document.getElementById('pool').appendChild(i));
+            dz.classList.remove('has-content');
         }
 
-        initRound();
+        function win() {
+            confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
+            setTimeout(() => {
+                document.getElementById('final-screen').classList.add('active');
+                if ('speechSynthesis' in window) {
+                    const u = new SpeechSynthesisUtterance("Te felicito, eres un experto en verduras.");
+                    u.lang = 'es-ES'; window.speechSynthesis.speak(u);
+                }
+            }, 1000);
+        }
+
+        init();
     </script>
 </body>
 </html>
 """
 
-components.html(html_huerto_aleatorio, height=950, scrolling=False)
+components.html(html_huerto_premium_random, height=950, scrolling=False)
