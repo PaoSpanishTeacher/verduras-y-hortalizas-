@@ -86,7 +86,7 @@ html_huerto_aleatorio = r"""
 
     <header>
         <h1>Juego del Huerto</h1>
-        <p style="color: var(--accent); font-weight: bold;">Pau Spanish Teacher</p>
+        <p style="color: var(--accent); font-weight: bold;">PaoSpanishTeacher</p>
     </header>
 
     <div class="main-layout">
