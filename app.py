@@ -147,7 +147,7 @@ html_huerto_premium_random = r"""
 
     <header>
         <h1>Huerto de Palabras</h1>
-        <div class="brand-name">Pau Spanish Teacher</div>
+        <div class="brand-name">PaoSpanishTeacher</div>
     </header>
 
     <div class="main-layout">
